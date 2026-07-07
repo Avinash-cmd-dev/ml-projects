@@ -5,61 +5,52 @@ print("=" * 60)
 print("FEATURE EXTRACTION")
 print("=" * 60)
 
-# Load dataset
+# Load preprocessed dataset
 DATASET_PATH = "data/public/gesture_dataset/gesture_dataset.csv"
 
 df = pd.read_csv(DATASET_PATH)
 
-# Sensor columns
-sensor_columns = [
-    "ax",
-    "ay",
-    "az",
-    "gx",
-    "gy",
-    "gz"
-]
-
 feature_rows = []
 
-# Process every gesture sample
-for sample_id, sample in df.groupby("sample_id"):
+# Group by BOTH label and sample_id
+for (label, sample_id), sample in df.groupby(["label", "sample_id"]):
 
     features = {}
 
     features["sample_id"] = sample_id
+    features["label"] = label
 
-    # Label of the complete gesture
-    features["label"] = sample["label"].iloc[0]
+    # Accelerometer Features
+    for axis in ["ax", "ay", "az"]:
+        features[f"{axis}_mean"] = sample[axis].mean()
+        features[f"{axis}_std"] = sample[axis].std()
+        features[f"{axis}_min"] = sample[axis].min()
+        features[f"{axis}_max"] = sample[axis].max()
+        features[f"{axis}_rms"] = np.sqrt(np.mean(sample[axis] ** 2))
 
-    for sensor in sensor_columns:
-
-        values = sample[sensor]
-
-        features[f"{sensor}_mean"] = values.mean()
-
-        features[f"{sensor}_std"] = values.std()
-
-        features[f"{sensor}_min"] = values.min()
-
-        features[f"{sensor}_max"] = values.max()
-
-        features[f"{sensor}_rms"] = np.sqrt(np.mean(values ** 2))
+    # Gyroscope Features
+    for axis in ["gx", "gy", "gz"]:
+        features[f"{axis}_mean"] = sample[axis].mean()
+        features[f"{axis}_std"] = sample[axis].std()
+        features[f"{axis}_min"] = sample[axis].min()
+        features[f"{axis}_max"] = sample[axis].max()
+        features[f"{axis}_rms"] = np.sqrt(np.mean(sample[axis] ** 2))
 
     feature_rows.append(features)
 
 # Create DataFrame
-features_df = pd.DataFrame(feature_rows)
+feature_df = pd.DataFrame(feature_rows)
 
 print("\nFeature Dataset Shape:")
-print(features_df.shape)
+print(feature_df.shape)
+
+print("\nGesture Distribution:")
+print(feature_df["label"].value_counts())
 
 print("\nFirst Five Samples:")
-print(features_df.head())
+print(feature_df.head())
 
 # Save feature dataset
-OUTPUT_PATH = "data/processed/features_dataset.csv"
-
-features_df.to_csv(OUTPUT_PATH, index=False)
+feature_df.to_csv("data/processed/features_dataset.csv", index=False)
 
 print("\nFeature dataset saved successfully!")
